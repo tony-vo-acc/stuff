@@ -5,19 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quiz</title>
 <style>
-  body{ font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; }
-  h1{ font-size: 20px; }
-  fieldset{ margin-bottom: 16px; }
+  body{ font-family: -apple-system, "Segoe UI", "Helvetica Neue", "Helvetica", Arial, sans-serif; font-weight: 300; color: #3a3a3a; max-width: 700px; margin: 40px auto; padding: 0 16px; line-height: 1.55; }
+  h1{ font-size: 20px; font-weight: 400; color: #2a2a2a; }
+  h2, h3{ font-weight: 400; color: #2a2a2a; }
+  fieldset{ margin-bottom: 16px; border-color: #ddd; }
   label{ display:block; margin: 4px 0; }
-  button{ padding: 6px 14px; margin-top: 10px; cursor:pointer; }
+  button{ padding: 6px 14px; margin-top: 10px; cursor:pointer; font-family: inherit; font-weight: 300; }
   #optionsList label{ padding:6px; border:1px solid #ccc; border-radius:4px; margin-bottom:6px; cursor:pointer; }
-  #optionsList label.correct{ background:#d4edda; border-color:#28a745; }
-  #optionsList label.wrong{ background:#f8d7da; border-color:#dc3545; }
-  #explanation{ background:#f4f4f4; border:1px solid #ddd; border-radius:4px; padding:10px; margin-top:10px; font-size:14px; }
+  #optionsList label .key-hint{ display:inline-block; min-width:18px; margin-right:6px; color:#999; font-size:12px; }
+  #optionsList label.correct{ background:#e6f4ea; border-color:#6bbf85; }
+  #optionsList label.wrong{ background:#faeaec; border-color:#e08b96; }
+  #explanation{ background:#f6f6f6; border:1px solid #e2e2e2; border-radius:4px; padding:10px; margin-top:10px; font-size:14px; color:#4a4a4a; }
   .hidden{ display:none; }
   #missedList div{ margin-bottom: 14px; }
   table{ border-collapse: collapse; width: 100%; margin-top: 10px; }
-  td, th{ border: 1px solid #ccc; padding: 6px; text-align: left; font-size: 14px; }
+  td, th{ border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -59,6 +61,8 @@
     <thead><tr><th>Chapter</th><th>Score</th></tr></thead>
     <tbody></tbody>
   </table>
+  <h3>Areas to Improve</h3>
+  <div id="improveList"></div>
   <h3>Missed Questions</h3>
   <div id="missedList"></div>
   <button id="retryBtn">Retry Same Setup</button>
@@ -154,6 +158,13 @@ function startQuiz(){
   renderQuestion();
 }
 
+let currentOptionEls = []; // label elements in currently displayed order, for keybind access
+
+function stripPrefix(s){
+  const m = /^[a-dA-D]\)\s*(.*)$/.exec(s);
+  return m ? m[1] : s;
+}
+
 function renderQuestion(){
   answeredCurrent = false;
   const q = session[idx];
@@ -165,28 +176,54 @@ function renderQuestion(){
   expEl.classList.add('hidden');
   const optWrap = document.getElementById('optionsList');
   optWrap.innerHTML = '';
-  q.options.forEach(opt=>{
+
+  // Randomize the order options are shown in each time this question is rendered.
+  const displayOptions = shuffle(q.options.map(stripPrefix));
+  currentOptionEls = [];
+  displayOptions.forEach((text, i)=>{
     const label = document.createElement('label');
-    label.textContent = opt;
-    label.addEventListener('click', ()=>handleAnswer(opt, label));
+    const hint = document.createElement('span');
+    hint.className = 'key-hint';
+    hint.textContent = (i+1) + '.';
+    label.appendChild(hint);
+    label.appendChild(document.createTextNode(text));
+    label.dataset.text = text;
+    label.addEventListener('click', ()=>handleAnswer(text, label));
     optWrap.appendChild(label);
+    currentOptionEls.push(label);
   });
   document.getElementById('nextBtn').classList.add('hidden');
 }
+
+document.addEventListener('keydown', (e)=>{
+  if(quizDiv.classList.contains('hidden')) return; // only active during quiz screen
+  const n = Number(e.key);
+  if(n >= 1 && n <= 4){
+    const label = currentOptionEls[n-1];
+    if(label && !answeredCurrent){
+      handleAnswer(label.dataset.text, label);
+    }
+    return;
+  }
+  if(e.key === 'Enter' && answeredCurrent){
+    document.getElementById('nextBtn').click();
+  }
+});
 
 function handleAnswer(chosen, labelEl){
   if(answeredCurrent) return;
   answeredCurrent = true;
   const q = session[idx];
-  const isRight = chosen === q.correct_answer;
+  const correctText = stripPrefix(q.correct_answer);
+  const isRight = chosen === correctText;
   if(isRight) score++;
   answers.push({question:q, chosen, isRight});
 
-  [...document.getElementById('optionsList').children].forEach(l=>{
-    if(l.textContent === q.correct_answer) l.classList.add('correct');
+  currentOptionEls.forEach(l=>{
+    if(l.dataset.text === correctText) l.classList.add('correct');
     else if(l === labelEl) l.classList.add('wrong');
   });
-  document.getElementById('feedback').textContent = isRight ? 'Correct.' : `Incorrect. Correct answer: ${q.correct_answer}`;
+  document.getElementById('feedback').textContent = isRight ? 'Correct.' : `Incorrect. Correct answer: ${correctText}`;
   const expEl = document.getElementById('explanation');
   expEl.textContent = 'Why: ' + q.explanation;
   expEl.classList.remove('hidden');
@@ -219,6 +256,24 @@ function showResults(){
     tbody.appendChild(tr);
   });
 
+  const improveList = document.getElementById('improveList');
+  improveList.innerHTML = '';
+  const weak = Object.entries(byChapter)
+    .map(([label, v]) => ({label, ...v, pct: v.right / v.total}))
+    .filter(c => c.pct < 1)
+    .sort((a, b) => a.pct - b.pct);
+  if(weak.length === 0){
+    improveList.textContent = 'No weak spots — you got every category 100% correct.';
+  } else {
+    const ul = document.createElement('ul');
+    weak.forEach(c=>{
+      const li = document.createElement('li');
+      li.textContent = `${c.label} — ${c.right}/${c.total} (${Math.round(c.pct*100)}%)`;
+      ul.appendChild(li);
+    });
+    improveList.appendChild(ul);
+  }
+
   const missedList = document.getElementById('missedList');
   missedList.innerHTML = '';
   const missed = answers.filter(a=>!a.isRight);
@@ -227,7 +282,7 @@ function showResults(){
   } else {
     missed.forEach(a=>{
       const div = document.createElement('div');
-      div.innerHTML = `<strong>${a.question.question}</strong><br>Your answer: ${a.chosen}<br>Correct answer: ${a.question.correct_answer}<br><em>Why: ${a.question.explanation}</em>`;
+      div.innerHTML = `<strong>${a.question.question}</strong><br>Your answer: ${a.chosen}<br>Correct answer: ${stripPrefix(a.question.correct_answer)}<br><em>Why: ${a.question.explanation}</em>`;
       missedList.appendChild(div);
     });
   }
