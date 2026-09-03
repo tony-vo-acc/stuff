@@ -1,0 +1,98 @@
+body {
+  font-family: -apple-system, "Segoe UI", "Helvetica Neue",
+               "Helvetica", Arial, sans-serif;
+  font-weight: 300;
+  color: #3a3a3a;
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 0 16px;
+  line-height: 1.55;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 400;
+  color: #2a2a2a;
+}
+
+h2,
+h3 {
+  font-weight: 400;
+  color: #2a2a2a;
+}
+
+fieldset {
+  margin-bottom: 16px;
+  border-color: #ddd;
+}
+
+label {
+  display: block;
+  margin: 4px 0;
+}
+
+button {
+  padding: 6px 14px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 300;
+}
+
+#optionsList label {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+#optionsList label .key-hint {
+  display: inline-block;
+  min-width: 18px;
+  margin-right: 6px;
+  color: #999;
+  font-size: 12px;
+}
+
+#optionsList label.correct {
+  background: #e6f4ea;
+  border-color: #6bbf85;
+}
+
+#optionsList label.wrong {
+  background: #faeaec;
+  border-color: #e08b96;
+}
+
+#explanation {
+  background: #f6f6f6;
+  border: 1px solid #e2e2e2;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #4a4a4a;
+}
+
+.hidden {
+  display: none;
+}
+
+#missedList div {
+  margin-bottom: 14px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 10px;
+}
+
+td,
+th {
+  border: 1px solid #ddd;
+  padding: 6px;
+  text-align: left;
+  font-size: 14px;
+}
